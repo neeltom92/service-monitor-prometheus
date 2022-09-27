@@ -1,6 +1,9 @@
 # service-monitor-prometheus
 a demo app for implementing ServiceMonitor in Golang
 
+# PodMonitor vs ServiceMonitor
+- https://github.com/prometheus-operator/prometheus-operator/issues/3119
+
 # reference link:
 - https://banzaicloud.com/blog/monitoring-gin-with-prometheus/
 - https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/user-guides/getting-started.md

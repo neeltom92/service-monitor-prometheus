@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: prodarcab
+  name: demo-app-configmap
+data:
+  MYSQL_USERNAME: hello
+  MYSQL_PASSWORD: testing
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: prodarcab
+  name: k8sdemo-app
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-demo-app
+  replicas: 1 # tells deployment to run 1 pods matching the template
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: test-demo-app
+    spec:
+      nodeSelector:
+        env: stg
+      containers:
+        - name: demo-app
+          image: 8xxxxxxxxx6.dkr.ecr.ap-south-1.amazonaws.com/k8sdemo:latest
+          imagePullPolicy: Always
+          envFrom:
+          - configMapRef:
+              name: demo-app-configmap
+          ports:
+            - containerPort: 8080
+            - containerPort: 8081
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: test-demo-app
+  namespace: prodarcab
+  name: test-demo-app
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: test-demo-app
+
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: test-demo-app
+  namespace: prodarcab
+  name: prom-test
+spec:
+  ports:
+    - name: prom-metrics
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: test-demo-app
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prom-metrics-servicemonitor
+  # Change this to the namespace the Prometheus instance is running in
+  namespace: prodarcab
+  labels:
+    app.kubernetes.io/name: test-demo-app
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: test-demo-app
+  endpoints:
+  - port: prom-metrics
+    interval: 15s
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: demo-app
+  name: prod-test-demo-app-ingress
+  namespace: prodarcab
+
+spec:
+  rules:
+  - host: test.codeworks.cloud
+    http:
+      paths:
+      - backend:
+          serviceName: test-demo-app
+          servicePort: 80
+        path: /
